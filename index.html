@@ -48,6 +48,9 @@ h2{text-align:center;color:var(--title);font-weight:400;font-size:26px;margin:26
 padding:8px 4px;box-shadow:0 4px 0 rgba(0,0,0,.12);transition:transform .15s;word-break:keep-all}
 .kid:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.12)}
 .kid{overflow:hidden;transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.kid{z-index:1}
+.kid.sel{z-index:5}
+.kid.press,.kid.boing,.kid.unboing{z-index:10}
 .kid.press{transform:translateY(4px) scale(.93);box-shadow:0 0 0 rgba(0,0,0,0)}
 .kid.sel{border-color:#fff;outline:4px solid #e85d04;transform:scale(1.06);color:#2b2b2b}
 .kid.boing{animation:boing .5s cubic-bezier(.3,1.6,.5,1)}
