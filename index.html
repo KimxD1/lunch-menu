@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오늘의 급식 메뉴</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: 다정하고 또렷한 유치원 교실 화면
+IDEA: 진짜 스테인리스 식판 + 알록달록 이름표
+PICTURE: 화면 위쪽을 채우는 식판 (반찬 4칸, 밥, 국)
+COLOUR and TYPE: 크림 바탕, 회색 식판, 무지개 이름표 / Jua
+LAYOUT: 제목 → 식판 → 친구들 → 지우기 버튼
+*/
+:root{color-scheme:light dark;
+--bg:light-dark(#fff9e8,#2a2418);--ink:light-dark(#4a3a1a,#fff4dc);
+--title:light-dark(#8a4b00,#ffcf7a);--tray:light-dark(#9ca3af,#5b616b);--trayEdge:light-dark(#6b7280,#3d424a);
+--cell:#f3f4f6;--cellInk:#4b5563;--soft:light-dark(#fff,#3a3222)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 'Jua','Apple SD Gothic Neo','Malgun Gothic',sans-serif;overflow-x:clip}
+.wrap{max-width:900px;margin:0 auto;padding:20px max(4vw,14px) 40px}
+h1{margin:0;text-align:center;color:var(--title);font-size:clamp(30px,5vw,44px);font-weight:400;line-height:1.15;word-break:keep-all}
+.date{text-align:center;margin:4px 0 18px;font-size:18px;opacity:.75}
+.tray{background:var(--tray);border:6px solid var(--trayEdge);border-radius:28px;padding:clamp(12px,2.4vw,20px);
+display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(8px,1.6vw,14px);box-shadow:0 10px 24px rgba(0,0,0,.15)}
+.cell{background:var(--cell);border:4px solid transparent;border-radius:14px;min-height:clamp(84px,14vw,120px);color:var(--cellInk);
+font:inherit;font-size:clamp(18px,2.6vw,24px);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+padding:8px;box-shadow:inset 0 -5px 0 rgba(0,0,0,.08);transition:transform .15s,background .2s,border-color .2s;text-align:center}
+.cell.big{grid-column:span 2;min-height:clamp(96px,16vw,140px);font-size:clamp(20px,3vw,28px)}
+.cell .ok{display:none;font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-weight:900;font-size:clamp(16px,2.4vw,22px);color:#c2410c}
+.cell.done{background:#fff3c4;border-color:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.35),inset 0 -5px 0 rgba(0,0,0,.06)}
+.cell.done .label{display:none}
+.cell.done .ok{display:block}
+.cell.pop{animation:pop .4s}
+.cell.edit{cursor:text}
+.cell.edit .label{outline:none;min-width:2em;padding:2px 6px;border-radius:6px;word-break:keep-all}
+.cell.edit:focus-within{border-color:#f59e0b}
+.cell.edit .label:empty::before{content:attr(data-ph);color:#9ca3af;pointer-events:none}
+@keyframes pop{40%{transform:scale(1.08)}}
+.cell:focus-visible,.kid:focus-visible,button:focus-visible{outline:4px solid #f59e0b;outline-offset:3px}
+h2{text-align:center;color:var(--title);font-weight:400;font-size:26px;margin:26px 0 14px}
+.kids{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.kid{position:relative;border:4px solid transparent;border-radius:18px;min-height:58px;font:inherit;font-size:clamp(17px,2.4vw,21px);color:#4b4b4b;cursor:pointer;
+padding:8px 4px;box-shadow:0 4px 0 rgba(0,0,0,.12);transition:transform .15s;word-break:keep-all}
+.kid:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.kid{overflow:hidden;transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.kid.press{transform:translateY(4px) scale(.93);box-shadow:0 0 0 rgba(0,0,0,0)}
+.kid.sel{border-color:#fff;outline:4px solid #e85d04;transform:scale(1.06);color:#2b2b2b}
+.kid.boing{animation:boing .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes boing{0%{transform:scale(.88)}55%{transform:scale(1.14)}100%{transform:scale(1.06)}}
+.kid.unboing{animation:unboing .35s ease-out}
+@keyframes unboing{0%{transform:scale(.9)}100%{transform:scale(1)}}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.65);transform:scale(0);animation:ripple .55s ease-out forwards;pointer-events:none}
+@keyframes ripple{to{transform:scale(1);opacity:0}}
+.tray.swap{animation:swap .35s ease-out}
+@keyframes swap{0%{transform:translateY(8px) scale(.98);opacity:.4}100%{transform:none;opacity:1}}
+.tools{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:28px}
+.tools button{font:inherit;font-size:17px;border:0;border-radius:99px;padding:10px 18px;min-height:44px;cursor:pointer;background:var(--soft);color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.12)}
+@media(max-width:600px){.tray{grid-template-columns:repeat(2,minmax(0,1fr))}.kids{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">🍱 오늘의 급식 메뉴</h1>
+  <p class="date" id="date"></p>
+  <div class="tray" id="tray"></div>
+
+  <h2>🧒 우리 반 친구들</h2>
+  <div class="kids" id="kids"></div>
+
+  <div class="tools">
+    <button id="resetOne">🔄 이 친구 식판 지우기</button>
+    <button id="resetAll">🧹 모두 지우기</button>
+  </div>
+</div>
+
+<script>
+{
+const KIDS=['김은후','김태준','박지유','서윤찬','서지우',
+'송유란','송유한','안서원','이다리나','이연',
+'이주한','이준우','정연아','정윤아','조윤서',
+'주윤슬','최수현','최승혁','최인우'];
+const COLORS=['#fca5a5','#fdba74','#fcd34d','#86efac','#7dd3fc','#c4b5fd','#f9a8d4','#a5b4fc','#fbbf24','#34d399','#60a5fa','#e879f9','#fb923c','#4ade80','#38bdf8','#f472b6','#facc15','#a3e635','#67e8f9'];
+const SLOTS=['반찬1','반찬2','반찬3','반찬4','밥','국'];
+const KEY='lunch-menu-v2',MKEY='lunch-menu-names';
+let menu=['','','','','',''];
+try{const m=JSON.parse(localStorage.getItem(MKEY));if(Array.isArray(m)&&m.length===6)menu=m}catch(e){}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// 한국 표준시(KST) 기준 날짜: 서버(GitHub Pages) 시각을 받아 태블릿 시계 오차를 보정
+let offset=0;
+const W='일월화수목금토';
+const kst=()=>new Date(Date.now()+offset+9*3600e3);          // UTC+9, getUTC*로 읽기
+const dayKey=()=>kst().toISOString().slice(0,10);
+let today=dayKey();
+let st={day:today,done:{}};
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.done)st=s}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+let cur=null;
+const $=id=>document.getElementById(id);
+
+function showDate(){const k=kst();$('date').textContent=`${k.getUTCMonth()+1}월 ${k.getUTCDate()}일 ${W[k.getUTCDay()]}요일`}
+function checkDay(){                                   // 날짜가 바뀌었으면 표시 초기화
+  today=dayKey();showDate();
+  if(st.day!==today){st={day:today,done:{}};cur=null;save();draw()}
+}
+async function syncTime(){
+  try{
+    const t0=Date.now();
+    const r=await fetch(location.href.split('#')[0],{method:'HEAD',cache:'no-store'});
+    const h=r.headers.get('Date');
+    if(h){const server=new Date(h).getTime();if(!isNaN(server))offset=server-(t0+Date.now())/2}
+  }catch(e){}                                          // 실패하면 태블릿 시계 사용
+  checkDay();
+}
+
+const doneOf=k=>st.done[k]||[];
+function drawTray(){
+  const ds=cur==null?[]:doneOf(cur);
+  $('tray').innerHTML=SLOTS.map((l,i)=>cur==null
+    ?`<div class="cell edit${i>=4?' big':''}" data-e="${i}"><span class="label" contenteditable="true" spellcheck="false" data-m="${i}" data-ph="${l}">${esc(menu[i].trim())}</span></div>`
+    :`<button class="cell${i>=4?' big':''}${ds.includes(i)?' done':''}" data-i="${i}"><span class="label">${esc(menu[i].trim()||l)}</span><span class="ok">다 먹었어요!</span></button>`).join('');
+  $('title').textContent=cur==null?'🍱 오늘의 급식 메뉴':`🍱 ${KIDS[cur]}의 급식`;
+}
+function drawKids(){
+  $('kids').innerHTML=KIDS.map((n,i)=>`<button class="kid${i===cur?' sel':''}" data-k="${i}" style="background:${COLORS[i%COLORS.length]}">${n}</button>`).join('');
+}
+function draw(){drawTray();drawKids()}
+
+// 누르는 순간 꾹 눌리는 느낌
+$('kids').addEventListener('pointerdown',e=>{const b=e.target.closest('.kid');if(b)b.classList.add('press')});
+['pointerup','pointerleave','pointercancel'].forEach(t=>$('kids').addEventListener(t,e=>{const b=e.target.closest('.kid');if(b)b.classList.remove('press')}));
+function ripple(btn,e){
+  const r=btn.getBoundingClientRect(),size=Math.max(r.width,r.height)*2.2,sp=document.createElement('span');
+  const x=(e.clientX||r.left+r.width/2)-r.left,y=(e.clientY||r.top+r.height/2)-r.top;
+  sp.className='ripple';sp.style.cssText=`width:${size}px;height:${size}px;left:${x-size/2}px;top:${y-size/2}px`;
+  btn.appendChild(sp);setTimeout(()=>sp.remove(),600);
+}
+$('kids').addEventListener('click',e=>{
+  const b=e.target.closest('.kid');if(!b)return;
+  const k=+b.dataset.k,off=(cur===k);
+  try{navigator.vibrate&&navigator.vibrate(25)}catch(err){}
+  cur=off?null:k;   // 같은 이름 다시 누르면 수정 화면으로, 다른 이름이면 바로 그 친구 식판으로
+  draw();
+  const nb=$('kids').querySelector(`[data-k="${k}"]`);
+  if(nb){nb.classList.add(off?'unboing':'boing');ripple(nb,e);nb.addEventListener('animationend',ev=>{if(ev.target===nb)nb.classList.remove('boing','unboing')},{once:true})}
+  const t=$('tray');t.classList.remove('swap');void t.offsetWidth;t.classList.add('swap');
+  const tr=t.getBoundingClientRect();if(tr.top<0||tr.bottom>innerHeight)$('title').scrollIntoView({behavior:'smooth',block:'start'});
+});
+$('tray').addEventListener('click',e=>{
+  const c=e.target.closest('button.cell');if(!c||cur==null)return;
+  const i=+c.dataset.i,arr=st.done[cur]=doneOf(cur).slice(),at=arr.indexOf(i);
+  if(at>=0)arr.splice(at,1);else arr.push(i);
+  save();draw();
+  if(at<0){const n=$('tray').querySelector(`[data-i="${i}"]`);n&&n.classList.add('pop')}
+});
+const saveMenu=()=>{try{localStorage.setItem(MKEY,JSON.stringify(menu))}catch(err){}};
+$('tray').addEventListener('input',e=>{const m=e.target.dataset.m;if(m!=null){menu[+m]=e.target.textContent.trim();if(!menu[+m])e.target.innerHTML='';saveMenu()}});
+$('tray').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.m!=null){e.preventDefault();e.target.blur()}});
+$('tray').addEventListener('focusout',e=>{const m=e.target.dataset.m;if(m!=null&&!menu[+m])e.target.innerHTML=''});
+$('tray').addEventListener('mousedown',e=>{const c=e.target.closest('.cell.edit');if(c&&!e.target.dataset.m){e.preventDefault();c.querySelector('.label').focus()}});
+$('tray').addEventListener('focusin',e=>{const t=e.target;if(t.dataset&&t.dataset.m!=null&&t.textContent){const r=document.createRange();r.selectNodeContents(t);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}});
+$('resetOne').addEventListener('click',()=>{if(cur!=null){delete st.done[cur];save();draw()}});
+$('resetAll').addEventListener('click',()=>{st.done={};cur=null;save();draw()});
+draw();
+checkDay();
+syncTime();
+setInterval(checkDay,30000);                         // 30초마다 자정 지났는지 확인
+setInterval(syncTime,30*60000);                      // 30분마다 표준시 다시 맞춤
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncTime()});
+}
+</script>
+</body>
+</html>
